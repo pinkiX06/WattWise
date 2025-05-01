@@ -117,7 +117,7 @@ def update_graph(selected_view, selected_appliance):
         if df_anomaly.empty:
             return go.Figure().update_layout(
                 title=f"No anomalies detected for {selected_appliance}",
-                xaxis_title="Date", yaxis_title="Consumption (kWh)",
+                xaxis_title="Date", yaxis_title="Consumption (Wh)",
                 template='plotly_dark'
             )
 
@@ -129,7 +129,7 @@ def update_graph(selected_view, selected_appliance):
                                  mode='markers', name='Anomalies',
                                  marker=dict(color='red', size=10)))  # Anomalies in red
         fig.update_layout(title=f"Anomalies in {selected_appliance} Consumption",
-                          xaxis_title="Date", yaxis_title="Consumption (kWh)",
+                          xaxis_title="Date", yaxis_title="Consumption (Wh)",
                           template='plotly_dark', paper_bgcolor='rgba(0, 0, 0, 0)',
                           plot_bgcolor='rgba(0, 0, 0, 0)')
         return fig
