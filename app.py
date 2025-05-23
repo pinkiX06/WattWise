@@ -4,11 +4,26 @@ import dash
 from dash import html, dcc
 from dash.dependencies import Input, Output
 import numpy as np
+import math
+import statsmodels.api as sm
+import statsmodels.tsa.api as smt
+from sklearn.metrics import mean_squared_error
+from matplotlib import pyplot
+import matplotlib.pyplot as plt
 
 # Load Data
 df = pd.read_csv('Datasets/electricity_appliance_wise_data.csv')  # Ensure this file exists
 df['Date'] = pd.to_datetime(df['Date'])  # Convert Date column to datetime
 df.set_index('Date', inplace=True)  # Set Date as index
+
+
+
+
+# ////// forecast/////
+# SARIMAX Forecasting Setup
+
+df3 = pd.read_csv(r'Datasets\electrical_forecast.csv')
+
 
 # Define Z-score function
 def zscore(x, window=30):
@@ -53,7 +68,8 @@ app.layout = html.Div([
         id='view-selector',
         options=[
             {'label': 'Time-Series Plot', 'value': 'timeseries'},
-            {'label': 'Appliance Anomalies', 'value': 'appliance_anomalies'}
+            {'label': 'Appliance Anomalies', 'value': 'appliance_anomalies'},
+            {'label': 'Forecasted Consumption', 'value': 'forecast'}
         ],
         value='timeseries',
         style={'width': '50%', 'margin': 'auto', 'color': 'black'}
@@ -107,6 +123,35 @@ def update_graph(selected_view, selected_appliance):
                           template='plotly_dark', paper_bgcolor='rgba(0, 0, 0, 0)',
                           plot_bgcolor='rgba(0, 0, 0, 0)')
         return fig
+    # for forecasting
+    elif selected_view == 'forecast':
+        df_sub = df3
+        df_anoms = df_sub[df_sub['MAE']>= 15]
+        df_anoms.reset_index(drop=True, inplace=True)
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df_sub['Date'], y=df_sub['Total_Consumption'],
+                            mode='lines',
+                            name='Actual Consumption',
+                            line_color="#19E2C5"))
+        fig.add_trace(go.Scatter(x=df_sub['Date'], y=df_sub['Predicted_Consumption'],
+                            mode='lines',
+                            name='Predicted Consumption',
+                            line_color="#C6810B"))
+        fig.add_trace(go.Scatter(x=df_anoms['Date'], y=df_anoms['Total_Consumption'],
+                            mode='markers',
+                            name='Excess Consumption'))
+        fig.update_traces(marker=dict(size=5, 
+                                    line=dict(width=5,
+                                                color='#C60B0B')))
+        fig.update_layout(template='plotly_dark',
+                    paper_bgcolor='rgba(0, 0, 0, 0)',
+                    plot_bgcolor='rgba(0, 0, 0, 0)',
+                    margin={'b': 15},
+                    autosize=True,
+                    yaxis_title="Consumption (kWh)",
+                    xaxis_title="Date",
+                    title={'text': 'Time-Series Plot & Forecasting Electricity Consumption for this year', 'font': {'color': 'white'}, 'x': 0.5})
+        return fig
 
     elif selected_view == 'appliance_anomalies' and selected_appliance:
         # Appliance-Specific Anomalies
@@ -117,7 +162,7 @@ def update_graph(selected_view, selected_appliance):
         if df_anomaly.empty:
             return go.Figure().update_layout(
                 title=f"No anomalies detected for {selected_appliance}",
-                xaxis_title="Date", yaxis_title="Consumption (Wh)",
+                xaxis_title="Date", yaxis_title="Consumption ",
                 template='plotly_dark'
             )
 
@@ -129,7 +174,7 @@ def update_graph(selected_view, selected_appliance):
                                  mode='markers', name='Anomalies',
                                  marker=dict(color='red', size=10)))  # Anomalies in red
         fig.update_layout(title=f"Anomalies in {selected_appliance} Consumption",
-                          xaxis_title="Date", yaxis_title="Consumption (Wh)",
+                          xaxis_title="Date", yaxis_title="Consumption ",
                           template='plotly_dark', paper_bgcolor='rgba(0, 0, 0, 0)',
                           plot_bgcolor='rgba(0, 0, 0, 0)')
         return fig
